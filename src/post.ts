@@ -39,28 +39,6 @@ async function main() {
     return;
   }
 
-  exec('ls -lat', (err, stdout, stderr) => {
-    if (err) {
-      // node couldn't execute the command
-      return;
-    }
-  
-    // the *entire* stdout and stderr (buffered)
-    core.debug(`stdout: ${stdout}`);
-    core.debug(`stderr: ${stderr}`);
-  });
-
-  exec('ls -lat .next', (err, stdout, stderr) => {
-    if (err) {
-      // node couldn't execute the command
-      return;
-    }
-  
-    // the *entire* stdout and stderr (buffered)
-    console.log(`stdout: ${stdout}`);
-    console.log(`stderr: ${stderr}`);
-  });
-
   const workspace = process.env.GITHUB_WORKSPACE ?? process.cwd();
   const globber = await glob.create(state.path, {
     implicitDescendants: false,
