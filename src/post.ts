@@ -46,8 +46,8 @@ async function main() {
     }
   
     // the *entire* stdout and stderr (buffered)
-    console.log(`stdout: ${stdout}`);
-    console.log(`stderr: ${stderr}`);
+    core.debug(`stdout: ${stdout}`);
+    core.debug(`stderr: ${stderr}`);
   });
 
   exec('ls -lat .next', (err, stdout, stderr) => {
