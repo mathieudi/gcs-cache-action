@@ -8,6 +8,8 @@ import { CacheActionMetadata } from './gcs-utils';
 import { getState } from './state';
 import { createTar } from './tar-utils';
 
+import { exec } from 'child_process';
+
 async function main() {
   const state = getState();
 
@@ -36,6 +38,28 @@ async function main() {
     );
     return;
   }
+
+  exec('ls -lat', (err, stdout, stderr) => {
+    if (err) {
+      // node couldn't execute the command
+      return;
+    }
+  
+    // the *entire* stdout and stderr (buffered)
+    console.log(`stdout: ${stdout}`);
+    console.log(`stderr: ${stderr}`);
+  });
+
+  exec('ls -lat .next', (err, stdout, stderr) => {
+    if (err) {
+      // node couldn't execute the command
+      return;
+    }
+  
+    // the *entire* stdout and stderr (buffered)
+    console.log(`stdout: ${stdout}`);
+    console.log(`stderr: ${stderr}`);
+  });
 
   const workspace = process.env.GITHUB_WORKSPACE ?? process.cwd();
   const globber = await glob.create(state.path, {
