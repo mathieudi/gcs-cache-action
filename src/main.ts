@@ -1,7 +1,6 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { Storage, File, Bucket } from '@google-cloud/storage';
-import { withFile as withTemporaryFile } from 'tmp-promise';
 
 import { ObjectMetadata } from './gcs-utils';
 import { getInputs } from './inputs';
@@ -137,38 +136,44 @@ async function main() {
 
   const workspace = process.env.GITHUB_WORKSPACE ?? process.cwd();
 
-  return withTemporaryFile(async (tmpFile) => {
-    await core
-      .group('🌐 Downloading cache archive from bucket', async () => {
-        console.log(`🔹 Downloading file '${bestMatch.name}'...`);
+  await core
+    .group('🌐 Downloading cache archive from bucket', async () => {
+      console.log(`🔹 Downloading file '${bestMatch.name}'...`);
 
-        return bestMatch.download({
-          destination: tmpFile.path,
-        });
-      })
-      .catch((err) => {
-        core.error('Failed to download the file');
-        throw err;
+      return bestMatch.download({
+        destination: `${workspace}/tmp.tar`,
       });
-
-    await core
-      .group('🗜️ Extracting cache archive', () =>
-        extractTar(tmpFile.path, compressionMethod, workspace),
-      )
-      .catch((err) => {
-        core.error('Failed to extract the archive');
-        throw err;
-      });
-
-    saveState({
-      path: inputs.path,
-      bucket: inputs.bucket,
-      cacheHitKind: bestMatchKind,
-      targetFileName: exactFileName,
+    })
+    .catch((err: unknown) => {
+      if (typeof err === 'string') {
+        core.error(`Failed to download the file: ${err}`);
+        core.debug(`Failed to download the file: ${err}`);
+        console.log(`Failed to download the file: ${err}`);
+      } else if (err instanceof Error) {
+        core.error(`Failed to download the file: ${err.message}`);
+        core.debug(`Failed to download the file: ${err.message}`);
+        console.log(`Failed to download the file: ${err.message}`);
+      }
+      throw err;
     });
-    core.setOutput('cache-hit', bestMatchKind === 'exact');
-    console.log('✅ Successfully restored cache.');
+
+  await core
+    .group('🗜️ Extracting cache archive', () =>
+      extractTar(`${workspace}/tmp.tar`, compressionMethod, workspace),
+    )
+    .catch((err) => {
+      core.error('Failed to extract the archive');
+      throw err;
+    });
+
+  saveState({
+    path: inputs.path,
+    bucket: inputs.bucket,
+    cacheHitKind: bestMatchKind,
+    targetFileName: exactFileName,
   });
+  core.setOutput('cache-hit', bestMatchKind === 'exact');
+  console.log('✅ Successfully restored cache.');
 }
 
 void main().catch((err: Error) => {
